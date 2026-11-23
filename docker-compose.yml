@@ -1,0 +1,12 @@
+services:
+  edge-service:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - backend/.env          # optional OpenAI key; remove this line to run fully offline
+    volumes:
+      - docuroute-data:/app/data      # history DB, uploads and department folders survive restarts
+    restart: unless-stopped
+volumes:
+  docuroute-data:

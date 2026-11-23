@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocuRoute Edge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><path d='M10 7h9l5 5v13H10z' fill='white'/><path d='M13 16h8M13 20h6' stroke='%234f46e5' stroke-width='2'/></svg>" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Chart.js is stored locally (vendor/) so the dashboard also works offline on the edge device -->
+  <script src="vendor/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="layout">
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">DocuRoute <span>Edge</span></div>
+          <div class="brand-sub">Intelligent Document Routing</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <div class="nav-label">Main</div>
+        <a href="#dashboard" data-page="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+        <a href="#classify" data-page="classify"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Classify Document</a>
+        <a href="#review" data-page="review"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Queue <span class="nav-badge" id="reviewBadge">0</span></a>
+        <a href="#history" data-page="history"><svg viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>History</a>
+        <div class="nav-label">Organisation</div>
+        <a href="#departments" data-page="departments"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Departments</a>
+        <a href="#model" data-page="model"><svg viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1 0-6h1V6a4 4 0 0 1 4-4z"/><circle cx="12" cy="10" r="2"/></svg>Model &amp; Analytics</a>
+        <a href="#system" data-page="system"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Edge System</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="edge-chip"><span class="dot" id="sideDot"></span><span id="sideStatus">Connecting…</span></div>
+        <div class="muted small">All predictions run locally on this device</div>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menu">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="pageSubtitle" class="muted">Overview</p>
+        </div>
+        <div class="topbar-right">
+          <span class="pill" id="modelPill">Model —</span>
+          <span class="pill" id="aiPill">AI —</span>
+          <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+            <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="page" id="page-dashboard"></section>
+        <section class="page" id="page-classify"></section>
+        <section class="page" id="page-review"></section>
+        <section class="page" id="page-history"></section>
+        <section class="page" id="page-departments"></section>
+        <section class="page" id="page-model"></section>
+        <section class="page" id="page-system"></section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Document detail modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Document</h3>
+        <button class="icon-btn" id="modalClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/pages/dashboard.js"></script>
+  <script src="js/pages/classify.js"></script>
+  <script src="js/pages/review.js"></script>
+  <script src="js/pages/history.js"></script>
+  <script src="js/pages/departments.js"></script>
+  <script src="js/pages/model.js"></script>
+  <script src="js/pages/system.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

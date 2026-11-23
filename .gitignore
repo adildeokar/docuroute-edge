@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+backend/.env
+data/history.db
+data/uploads/
+data/routed/
+.vscode/

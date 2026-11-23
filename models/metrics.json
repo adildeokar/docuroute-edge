@@ -1,0 +1,333 @@
+{
+  "version": 1,
+  "trained_at": "2026-11-23T20:54:02",
+  "model_name": "Linear SVM (calibrated)",
+  "features": "Word TF-IDF (1-2 grams) + Char TF-IDF (3-5 grams)",
+  "feature_count": 42000,
+  "classes": [
+    "application_form",
+    "bank_statement",
+    "identity_document",
+    "invoice",
+    "legal_contract",
+    "medical_report",
+    "receipt",
+    "resume"
+  ],
+  "dataset": {
+    "total": 2000,
+    "train_size": 1600,
+    "test_size": 400,
+    "feedback_samples": 0,
+    "per_class": {
+      "application_form": 250,
+      "bank_statement": 250,
+      "identity_document": 250,
+      "invoice": 250,
+      "legal_contract": 250,
+      "medical_report": 250,
+      "receipt": 250,
+      "resume": 250
+    }
+  },
+  "test_accuracy": 0.98,
+  "test_macro_f1": 0.9799,
+  "cv_accuracy_mean": 0.9835,
+  "cv_accuracy_std": 0.0054,
+  "per_class": {
+    "application_form": {
+      "precision": 0.9608,
+      "recall": 0.98,
+      "f1-score": 0.9703,
+      "support": 50.0
+    },
+    "bank_statement": {
+      "precision": 1.0,
+      "recall": 0.94,
+      "f1-score": 0.9691,
+      "support": 50.0
+    },
+    "identity_document": {
+      "precision": 0.9796,
+      "recall": 0.96,
+      "f1-score": 0.9697,
+      "support": 50.0
+    },
+    "invoice": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "legal_contract": {
+      "precision": 0.9615,
+      "recall": 1.0,
+      "f1-score": 0.9804,
+      "support": 50.0
+    },
+    "medical_report": {
+      "precision": 0.9796,
+      "recall": 0.96,
+      "f1-score": 0.9697,
+      "support": 50.0
+    },
+    "receipt": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 50.0
+    },
+    "resume": {
+      "precision": 0.9615,
+      "recall": 1.0,
+      "f1-score": 0.9804,
+      "support": 50.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      49,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      47,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      48,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      50,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      50,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      0,
+      48,
+      0,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      50,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      50
+    ]
+  ],
+  "model_comparison": [
+    {
+      "model": "Logistic Regression",
+      "accuracy": 0.9775,
+      "macro_f1": 0.9775,
+      "train_time_s": 3.75,
+      "predict_ms_per_doc": 0.635
+    },
+    {
+      "model": "Linear SVM (calibrated)",
+      "accuracy": 0.98,
+      "macro_f1": 0.9799,
+      "train_time_s": 1.8,
+      "predict_ms_per_doc": 0.599
+    },
+    {
+      "model": "Multinomial Naive Bayes",
+      "accuracy": 0.965,
+      "macro_f1": 0.965,
+      "train_time_s": 1.25,
+      "predict_ms_per_doc": 0.594
+    }
+  ],
+  "top_keywords": {
+    "application_form": [
+      "app",
+      "form",
+      "applicant",
+      "male",
+      "section",
+      "details",
+      "gender",
+      "personal",
+      "application",
+      "birt"
+    ],
+    "bank_statement": [
+      "account",
+      "main",
+      "bank",
+      "branch",
+      "chq",
+      "upi",
+      "code",
+      "holder",
+      "ifsc",
+      "bank branch"
+    ],
+    "identity_document": [
+      "birth",
+      "india",
+      "sex",
+      "namc",
+      "birth sex",
+      "date birth",
+      "aadhaar",
+      "indian",
+      "nationality",
+      "government"
+    ],
+    "invoice": [
+      "invoice",
+      "po",
+      "inv",
+      "gstin",
+      "invoice inv",
+      "gstin invoice",
+      "inoice",
+      "inv date",
+      "invoice date",
+      "order"
+    ],
+    "legal_contract": [
+      "second",
+      "party",
+      "te",
+      "thc",
+      "arty",
+      "pary",
+      "services",
+      "porty",
+      "law",
+      "second party"
+    ],
+    "medical_report": [
+      "patient",
+      "age",
+      "dr",
+      "report",
+      "id",
+      "sex",
+      "age sex",
+      "uhid",
+      "pid",
+      "paient"
+    ],
+    "receipt": [
+      "receipt",
+      "time",
+      "tel",
+      "gst",
+      "tax",
+      "cash",
+      "table",
+      "paid",
+      "counter",
+      "cashier"
+    ],
+    "resume": [
+      "com",
+      "phone",
+      "email",
+      "github",
+      "skills",
+      "experience",
+      "present",
+      "com phone",
+      "linkedin",
+      "corn"
+    ]
+  },
+  "misclassified_examples": [
+    {
+      "true": "bank_statement",
+      "predicted": "legal_contract",
+      "snippet": "canara bank signed by the second party: ___________ account holder: emily shah in witness whereof the arties have executedthis agreemet on the date first writte"
+    },
+    {
+      "true": "identity_document",
+      "predicted": "resume",
+      "snippet": "permanent acount number car linkedin: linkedin.com/in/0akshmiiyer public of india profile work eperience - 0mproved efficiccy by 0% namc:aditya ch0ra hr executi"
+    },
+    {
+      "true": "medical_report",
+      "predicted": "identity_document",
+      "snippet": "discharge summary id no: m0j0000000 this card is property of the government signature of holder sex: m blood group: ab- apollo diagnostics date of birth: march "
+    },
+    {
+      "true": "medical_report",
+      "predicted": "resume",
+      "snippet": "diagnostic report - pmp hr executive city care hospital machine learning, data analysis, aws, project management, python, leadership 000, hill view lane, jaipur"
+    },
+    {
+      "true": "identity_document",
+      "predicted": "application_form",
+      "snippet": "unique identification authority of india ame: sarah singh date of birth: 00/00/0000 signatre of aplicant gender: [ ] male [ ] female [ ] other category: [ ] gen"
+    },
+    {
+      "true": "bank_statement",
+      "predicted": "application_form",
+      "snippet": "canara bank branch: suot main acoun older: sarah vema aplicatlon o: pp-0000o0 gender: [ ] male [ ] female[ ] other account nmber xxxxxx0000applica must submit t"
+    },
+    {
+      "true": "application_form",
+      "predicted": "legal_contract",
+      "snippet": "0. fore majeure: neiher party shall be liable for delay caused by events beyond reasonable control. whereas tcfirst partis engaged in the business of roviding s"
+    },
+    {
+      "true": "bank_statement",
+      "predicted": "medical_report",
+      "snippet": "estatemnt repor date: may0, 000 age / sex 00 y/f brach:0dore mai ** end of repor *** discharge summa 000 nehru ngo, jaipu - 00000 cc0unt oldcr:kavyamalhotra ac0"
+    }
+  ],
+  "training_time_s": 20.3
+}

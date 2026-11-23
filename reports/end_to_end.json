@@ -1,0 +1,266 @@
+{
+  "tested_at": "2026-11-23T20:53:02",
+  "images": 32,
+  "correct": 32,
+  "accuracy": 1.0,
+  "avg_ocr_ms": 3119.6,
+  "avg_classify_ms": 7.99,
+  "results": [
+    {
+      "image": "application_form__1.png",
+      "expected": "application_form",
+      "predicted": "application_form",
+      "confidence": 0.9956,
+      "ocr_confidence": 0.979,
+      "ocr_ms": 4110.0
+    },
+    {
+      "image": "application_form__2.png",
+      "expected": "application_form",
+      "predicted": "application_form",
+      "confidence": 0.9976,
+      "ocr_confidence": 0.986,
+      "ocr_ms": 3829.1
+    },
+    {
+      "image": "application_form__3.png",
+      "expected": "application_form",
+      "predicted": "application_form",
+      "confidence": 0.9958,
+      "ocr_confidence": 0.981,
+      "ocr_ms": 2957.6
+    },
+    {
+      "image": "application_form__4.png",
+      "expected": "application_form",
+      "predicted": "application_form",
+      "confidence": 0.9972,
+      "ocr_confidence": 0.989,
+      "ocr_ms": 2159.0
+    },
+    {
+      "image": "bank_statement__1.png",
+      "expected": "bank_statement",
+      "predicted": "bank_statement",
+      "confidence": 0.9871,
+      "ocr_confidence": 0.97,
+      "ocr_ms": 4427.5
+    },
+    {
+      "image": "bank_statement__2.png",
+      "expected": "bank_statement",
+      "predicted": "bank_statement",
+      "confidence": 0.9968,
+      "ocr_confidence": 0.981,
+      "ocr_ms": 4175.8
+    },
+    {
+      "image": "bank_statement__3.png",
+      "expected": "bank_statement",
+      "predicted": "bank_statement",
+      "confidence": 0.9884,
+      "ocr_confidence": 0.971,
+      "ocr_ms": 5480.1
+    },
+    {
+      "image": "bank_statement__4.png",
+      "expected": "bank_statement",
+      "predicted": "bank_statement",
+      "confidence": 0.9952,
+      "ocr_confidence": 0.975,
+      "ocr_ms": 6386.5
+    },
+    {
+      "image": "identity_document__1.png",
+      "expected": "identity_document",
+      "predicted": "identity_document",
+      "confidence": 0.9926,
+      "ocr_confidence": 0.982,
+      "ocr_ms": 1638.8
+    },
+    {
+      "image": "identity_document__2.png",
+      "expected": "identity_document",
+      "predicted": "identity_document",
+      "confidence": 0.9923,
+      "ocr_confidence": 0.993,
+      "ocr_ms": 1701.1
+    },
+    {
+      "image": "identity_document__3.png",
+      "expected": "identity_document",
+      "predicted": "identity_document",
+      "confidence": 0.9905,
+      "ocr_confidence": 0.98,
+      "ocr_ms": 1655.4
+    },
+    {
+      "image": "identity_document__4.png",
+      "expected": "identity_document",
+      "predicted": "identity_document",
+      "confidence": 0.9961,
+      "ocr_confidence": 0.991,
+      "ocr_ms": 1981.7
+    },
+    {
+      "image": "invoice__1.png",
+      "expected": "invoice",
+      "predicted": "invoice",
+      "confidence": 0.9934,
+      "ocr_confidence": 0.975,
+      "ocr_ms": 3316.6
+    },
+    {
+      "image": "invoice__2.png",
+      "expected": "invoice",
+      "predicted": "invoice",
+      "confidence": 0.9969,
+      "ocr_confidence": 0.986,
+      "ocr_ms": 2382.8
+    },
+    {
+      "image": "invoice__3.png",
+      "expected": "invoice",
+      "predicted": "invoice",
+      "confidence": 0.9914,
+      "ocr_confidence": 0.977,
+      "ocr_ms": 3430.1
+    },
+    {
+      "image": "invoice__4.png",
+      "expected": "invoice",
+      "predicted": "invoice",
+      "confidence": 0.9966,
+      "ocr_confidence": 0.985,
+      "ocr_ms": 3605.0
+    },
+    {
+      "image": "legal_contract__1.png",
+      "expected": "legal_contract",
+      "predicted": "legal_contract",
+      "confidence": 0.9906,
+      "ocr_confidence": 0.982,
+      "ocr_ms": 5094.3
+    },
+    {
+      "image": "legal_contract__2.png",
+      "expected": "legal_contract",
+      "predicted": "legal_contract",
+      "confidence": 0.9937,
+      "ocr_confidence": 0.988,
+      "ocr_ms": 5020.7
+    },
+    {
+      "image": "legal_contract__3.png",
+      "expected": "legal_contract",
+      "predicted": "legal_contract",
+      "confidence": 0.9932,
+      "ocr_confidence": 0.981,
+      "ocr_ms": 6503.1
+    },
+    {
+      "image": "legal_contract__4.png",
+      "expected": "legal_contract",
+      "predicted": "legal_contract",
+      "confidence": 0.9927,
+      "ocr_confidence": 0.992,
+      "ocr_ms": 5292.1
+    },
+    {
+      "image": "medical_report__1.png",
+      "expected": "medical_report",
+      "predicted": "medical_report",
+      "confidence": 0.9876,
+      "ocr_confidence": 0.988,
+      "ocr_ms": 1447.2
+    },
+    {
+      "image": "medical_report__2.png",
+      "expected": "medical_report",
+      "predicted": "medical_report",
+      "confidence": 0.9927,
+      "ocr_confidence": 0.989,
+      "ocr_ms": 1838.1
+    },
+    {
+      "image": "medical_report__3.png",
+      "expected": "medical_report",
+      "predicted": "medical_report",
+      "confidence": 0.9891,
+      "ocr_confidence": 0.983,
+      "ocr_ms": 2211.6
+    },
+    {
+      "image": "medical_report__4.png",
+      "expected": "medical_report",
+      "predicted": "medical_report",
+      "confidence": 0.9938,
+      "ocr_confidence": 0.986,
+      "ocr_ms": 871.3
+    },
+    {
+      "image": "receipt__1.png",
+      "expected": "receipt",
+      "predicted": "receipt",
+      "confidence": 0.9948,
+      "ocr_confidence": 0.987,
+      "ocr_ms": 1473.5
+    },
+    {
+      "image": "receipt__2.png",
+      "expected": "receipt",
+      "predicted": "receipt",
+      "confidence": 0.9973,
+      "ocr_confidence": 0.992,
+      "ocr_ms": 917.2
+    },
+    {
+      "image": "receipt__3.png",
+      "expected": "receipt",
+      "predicted": "receipt",
+      "confidence": 0.9937,
+      "ocr_confidence": 0.985,
+      "ocr_ms": 1549.9
+    },
+    {
+      "image": "receipt__4.png",
+      "expected": "receipt",
+      "predicted": "receipt",
+      "confidence": 0.9969,
+      "ocr_confidence": 0.991,
+      "ocr_ms": 658.5
+    },
+    {
+      "image": "resume__1.png",
+      "expected": "resume",
+      "predicted": "resume",
+      "confidence": 0.9921,
+      "ocr_confidence": 0.988,
+      "ocr_ms": 3223.5
+    },
+    {
+      "image": "resume__2.png",
+      "expected": "resume",
+      "predicted": "resume",
+      "confidence": 0.9917,
+      "ocr_confidence": 0.985,
+      "ocr_ms": 3010.6
+    },
+    {
+      "image": "resume__3.png",
+      "expected": "resume",
+      "predicted": "resume",
+      "confidence": 0.9947,
+      "ocr_confidence": 0.984,
+      "ocr_ms": 4297.6
+    },
+    {
+      "image": "resume__4.png",
+      "expected": "resume",
+      "predicted": "resume",
+      "confidence": 0.9914,
+      "ocr_confidence": 0.987,
+      "ocr_ms": 3181.0
+    }
+  ]
+}
