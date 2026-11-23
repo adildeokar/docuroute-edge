@@ -4,3 +4,4 @@ data/history.db
 data/uploads
 data/routed
 .git
+data/kaggle_raw/

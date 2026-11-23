@@ -5,3 +5,4 @@ data/history.db
 data/uploads/
 data/routed/
 .vscode/
+data/kaggle_raw/

@@ -16,16 +16,30 @@ python app.py                     # edge service + dashboard on http://localhost
 python scanner_simulator.py       # (2nd terminal) device simulator sending documents over HTTP
 python test_system.py             # normal + abnormal tests, end-to-end OCR accuracy
 ```
-Rebuild data/model from scratch: `python generate_dataset.py && python train_model.py`
+Rebuild data/model from scratch: `python generate_dataset.py && python kaggle_dataset.py && python train_model.py`
+
+## Dataset
+3,200 labelled documents, 400 per category: **1,500 real documents from public Kaggle datasets** + 1,700 synthetic ones.
+
+| Category | Real data (Kaggle) | Licence |
+|---|---|---|
+| Receipt | SROIE 2019 scanned receipts: `ryanznie/sroie-datasetv2-with-labels` | MIT |
+| Invoice | Company Documents Dataset: `ayoubcherguelaine/company-documents-dataset` | Apache 2.0 |
+| Resume | Resume Dataset: `snehaanbhawal/resume-dataset` | CC0 |
+| Medical Report | Medical Transcriptions (mtsamples): `tboyle10/medicaltranscriptions` | CC0 |
+| Legal Contract | CUAD v1 (The Atticus Project): `konradb/atticus-open-contract-dataset-aok-beta` | CC BY 4.0 |
+| ID document, bank statement, application form | none exist publicly (private data), so synthetic only (`generate_dataset.py`) | n/a |
 
 ## Results
 | Metric | Value |
 |---|---|
-| Test accuracy (400 unseen docs) | **98.0%** |
-| 5-fold cross-validation | **98.35% ± 0.54%** |
+| Test accuracy (640 unseen docs) | **99.4%** |
+| Accuracy on unseen **real** Kaggle documents | **100%** (285 docs) |
+| Synthetic-only model tested on all 1,500 real docs | **93.7%** |
+| 5-fold cross-validation | **99.44% ± 0.25%** |
 | End-to-end OCR + model on 32 scanned images | **32/32** |
-| Functional tests (normal + abnormal) | **42/42 passed** |
-| Classification time | ~8 ms / document (CPU) |
+| Functional tests (normal + abnormal) | **43/43 passed** |
+| Classification time | ~9 ms / document (CPU) |
 
 ## Categories → departments
 Invoice → Finance (Accounts Payable) · Receipt → Finance (Expense Claims) · Identity Document → HR (KYC) · Application Form → Applications Desk · Bank Statement → Finance (Audit) · Medical Report → Health & Insurance Claims · Resume → HR (Recruitment) · Legal Contract → Legal & Compliance · uncertain → Manual Review Desk

@@ -65,7 +65,9 @@ def test_normal():
         ok = r.status_code == 200 and j["final_category"] == expected and j["status"] == "auto_routed" \
             and os.path.exists(os.path.join(config.ROUTED_DIR, j["routed_path"]))
         record("Normal", name, ok, summary(r))
-    r = client.post("/api/classify", data={"text": "INVOICE\nInvoice No: INV-1001\nBill To: Apex Ltd\nSubtotal 1000.00\nGST 180.00\nTotal Amount Due: 1180.00"})
+    r = client.post("/api/classify", data={"text": "TAX INVOICE\nNova Supplies Co.\nInvoice No: INV-1001\nInvoice Date: 12/03/2026\n"
+                                                   "Bill To: Apex Ltd\nDescription | Qty | Unit Price | Amount\nPrinter Toner | 4 | 250.00 | 1000.00\n"
+                                                   "Subtotal 1000.00\nGST 180.00\nTotal Amount Due: 1180.00\nPayment Terms: Net 30"})
     record("Normal", "pasted invoice text", r.status_code == 200 and r.get_json()["final_category"] == "invoice", summary(r))
 
 
@@ -87,6 +89,12 @@ def test_abnormal():
     j = r.get_json()
     record("Abnormal", "ambiguous_invoice_receipt.png (mixed)", r.status_code == 200 and
            (j["status"] == "needs_review" or j["final_category"] in ("invoice", "receipt")), summary(r))
+    # real receipts (SROIE) are titled "TAX INVOICE" and list GST, so a tiny snippet is genuinely ambiguous:
+    # it must go to review or to the invoice desk, never be auto-routed to a wrong department
+    r = client.post("/api/classify", data={"text": "INVOICE\nInvoice No: INV-1001\nSubtotal 1000.00\nGST 180.00\nTotal Amount Due: 1180.00"})
+    j = r.get_json()
+    record("Abnormal", "short invoice/receipt snippet (ambiguous)", r.status_code == 200 and
+           (j["status"] == "needs_review" or j["final_category"] == "invoice"), summary(r))
     r = upload(sample("abnormal/very_blurry_scan.jpg"))
     j = r.get_json()
     record("Abnormal", "very_blurry_scan.jpg (poor quality)", r.status_code == 200 and

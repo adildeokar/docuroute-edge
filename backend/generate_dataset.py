@@ -1,14 +1,15 @@
 """
 generate_dataset.py - STEP 1 of the implementation guide: "Collect sample documents".
 
-Real invoices, ID cards and medical reports contain private data, so we cannot
-download thousands of them. Instead this script *synthesises* realistic documents
-for 8 categories using randomised templates (names, amounts, dates, layouts,
-optional sections) and then adds OCR-style noise (wrong characters, missing
-lines, partial scans) so the model learns to cope with imperfect scans.
+ID cards, bank statements and application forms contain private data, so no public
+dataset of them exists. This script *synthesises* realistic documents for all 8
+categories using randomised templates (names, amounts, dates, layouts, optional
+sections) and adds OCR-style noise (wrong characters, missing lines, partial scans)
+so the model learns to cope with imperfect scans. kaggle_dataset.py then replaces
+most of the documents of 5 categories with REAL documents from public Kaggle datasets.
 
 Outputs
-  data/dataset/documents.csv           -> text corpus used for training (label, text)
+  data/dataset/synthetic_documents.csv -> synthetic text corpus (label, text), input of kaggle_dataset.py
   data/dataset/ocr_test_images/*.png   -> held-out rendered "scans" for end-to-end OCR testing
   sample_documents/                    -> demo files (images, PDFs, txt) + abnormal test inputs
 
@@ -25,7 +26,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 import config
 
-SAMPLES_PER_CLASS = 250
+SAMPLES_PER_CLASS = 400
 rng = random.Random(42)
 
 # ---------------------------------------------------------------------------
@@ -471,11 +472,11 @@ def build_corpus():
             title, lines = make()
             rows.append((label, to_text(title, lines, label=label)))
     rng.shuffle(rows)
-    with open(config.DATASET_CSV, "w", newline="", encoding="utf-8") as f:
+    with open(config.SYNTHETIC_CSV, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["label", "text"])
         w.writerows(rows)
-    print(f"[dataset] {len(rows)} labelled documents -> {config.DATASET_CSV}")
+    print(f"[dataset] {len(rows)} labelled documents -> {config.SYNTHETIC_CSV}")
 
 
 def build_ocr_test_images(per_class=4):
@@ -542,4 +543,4 @@ if __name__ == "__main__":
     build_corpus()
     build_ocr_test_images()
     build_samples()
-    print("Done. Next step:  python train_model.py")
+    print("Done. Next step:  python kaggle_dataset.py")

@@ -18,7 +18,8 @@ load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 # Runtime data (history DB, uploads, routed folders). Can be overridden for tests.
 DATA_DIR = os.environ.get("EDGE_DATA_DIR", os.path.join(PROJECT_DIR, "data"))
 DATASET_DIR = os.path.join(PROJECT_DIR, "data", "dataset")          # training corpus
-DATASET_CSV = os.path.join(DATASET_DIR, "documents.csv")
+DATASET_CSV = os.path.join(DATASET_DIR, "documents.csv")             # final mix: Kaggle (real) + synthetic
+SYNTHETIC_CSV = os.path.join(DATASET_DIR, "synthetic_documents.csv")  # output of generate_dataset.py
 OCR_TEST_DIR = os.path.join(DATASET_DIR, "ocr_test_images")         # held-out scanned images
 MODEL_DIR = os.path.join(PROJECT_DIR, "models")
 MODEL_PATH = os.path.join(MODEL_DIR, "document_classifier.joblib")

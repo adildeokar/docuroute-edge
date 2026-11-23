@@ -86,22 +86,22 @@ This file explains **everything** about the project: the original question and i
 
 | # | Requirement | Where / how it is met |
 |---|---|---|
-| 70 | Collect sample documents (invoices, receipts, IDs, application forms) | `backend/generate_dataset.py` creates **2,000 labelled documents in 8 categories** (the 4 required + bank statements, medical reports, resumes, legal contracts), plus 32 rendered scan images for testing and 27 demo files in `sample_documents/` |
+| 70 | Collect sample documents (invoices, receipts, IDs, application forms) | **3,200 labelled documents in 8 categories** (the 4 required + bank statements, medical reports, resumes, legal contracts). **1,500 are real documents from 5 public Kaggle datasets** (`backend/kaggle_dataset.py`) and 1,700 are realistic synthetic documents (`backend/generate_dataset.py`) for the private types (ID cards, bank statements, application forms). Plus 32 rendered scan images for testing and 27 demo files in `sample_documents/` |
 | 71 | Extract text or visual features | `backend/ocr.py`: offline OCR (RapidOCR/ONNX) for images, text layer or OCR for PDFs, DOCX/TXT readers. `backend/train_model.py`: **word + character TF-IDF** features |
-| 72 | Train a classification model | `backend/train_model.py` trains and compares **Logistic Regression, Linear SVM, Naive Bayes**; best = Linear SVM (calibrated), 98.0% test accuracy, 98.35% 5-fold CV |
+| 72 | Train a classification model | `backend/train_model.py` trains and compares **Logistic Regression, Linear SVM, Naive Bayes**; best = Linear SVM (calibrated), 99.38% test accuracy, 99.44% 5-fold CV, 100% on unseen real Kaggle documents |
 | 73 | Deploy the model as a local edge service | `backend/app.py`: **Flask REST microservice** on port 5000; also `Dockerfile` + `docker-compose.yml` |
 | 74 | Upload a new document and predict its category | Dashboard → *Classify Document* (drag & drop, paste text, sample gallery) → `POST /api/classify` |
 | 75 | Assign to department / folder | `backend/router.py` copies the file into `data/routed/<Department>/`; routing table in `backend/config.py` |
 | 76 | Maintain history and confidence | `backend/database.py`: SQLite `data/history.db` stores prediction, confidence, all class probabilities, department, status, alerts and timings. *History* page + CSV export |
 | Approach | TF-IDF + LR/SVM | Exactly this: TF-IDF + Logistic Regression **and** SVM, compared side by side |
 | Jury: problem understanding | Section 3 of this file + dashboard hero text |
-| Jury: dataset prep | Section 6 (collection, labelling, preprocessing, 80/20 stratified split) |
+| Jury: dataset prep | Section 6 (public Kaggle datasets + synthetic data, labelling, preprocessing, 80/20 stratified split) |
 | Jury: ML explained & evaluated | Section 8 + *Model & Analytics* page (accuracy, F1, confusion matrix, CV, keywords) |
 | Jury: edge implementation | Flask microservice, all inference local, works offline, Docker image |
 | Jury: communication | HTTP REST API used by (a) the dashboard, (b) `scanner_simulator.py` device simulator, (c) curl/any client, (d) *Live API console* on the Edge System page |
 | Jury: live prediction | Upload any new file during the demo; real OCR + model output is shown in seconds |
 | Jury: dashboard & records | 7-page dashboard: KPIs, charts, alerts, history, review queue, departments, model analytics, system health |
-| Jury: testing | `backend/test_system.py`: **42/42 functional tests pass** (normal + 12 abnormal cases), **32/32 held-out scanned images correct**; report in `reports/test_report.md` |
+| Jury: testing | `backend/test_system.py`: **43/43 functional tests pass** (normal + 13 abnormal cases), **32/32 held-out scanned images correct**; report in `reports/test_report.md` |
 | Jury: limitations, performance, edge role | Sections 18–20 |
 
 ---
@@ -186,7 +186,8 @@ AEA Final JURY/
 │
 ├── backend/                    ← THE EDGE SERVICE (Python)
 │   ├── config.py               ← all settings: paths, thresholds, category → department table
-│   ├── generate_dataset.py     ← STEP 70: creates the labelled dataset + demo/test images
+│   ├── generate_dataset.py     ← STEP 70: synthetic documents (all 8 types) + demo/test images
+│   ├── kaggle_dataset.py       ← STEP 70: downloads REAL documents from public Kaggle datasets, mixes them in
 │   ├── train_model.py          ← STEPS 71-72: TF-IDF features, trains & compares 3 models, saves best
 │   ├── classifier.py           ← loads the model; predict() returns category, probabilities, explanation
 │   ├── ocr.py                  ← text extraction from images / PDF / DOCX / TXT (offline OCR)
@@ -213,7 +214,9 @@ AEA Final JURY/
 │                                  departments, model, system
 │
 ├── data/
-│   ├── dataset/documents.csv       ← 2,000 labelled training documents (label, text)
+│   ├── dataset/documents.csv       ← 3,200 labelled training documents (label, text, source = kaggle/synthetic)
+│   ├── dataset/synthetic_documents.csv ← output of generate_dataset.py (input of kaggle_dataset.py)
+│   ├── kaggle_raw/                 ← downloaded Kaggle files (cache, not committed)
 │   ├── dataset/ocr_test_images/    ← 32 held-out rendered scans for end-to-end testing
 │   ├── history.db                  ← created at runtime: classification history
 │   ├── uploads/                    ← created at runtime: original uploads
@@ -233,10 +236,31 @@ AEA Final JURY/
 
 ## 6. Dataset & Input Preparation
 
-### 6.1 Why a generated dataset?
-Real invoices, ID cards, bank statements and medical reports contain **personal data**; publishing or downloading thousands of them is neither legal nor ethical. Public datasets such as RVL-CDIP exist (400,000 images), but they are 40+ GB, low resolution, and do not have our exact categories (e.g. Indian ID cards, bank statements). The jury instructions explicitly allow **"realistic sample inputs"**, so we built a **document generator**.
+### 6.1 Where the data comes from: real (Kaggle) + synthetic
+The training corpus `data/dataset/documents.csv` has **3,200 labelled documents, 400 per category**, from two sources:
 
-### 6.2 How documents are collected (generated): `generate_dataset.py`
+| Category | Real documents (public Kaggle dataset) | Synthetic | Total |
+|---|---|---|---|
+| Invoice | 300: *Company Documents Dataset* (`ayoubcherguelaine/company-documents-dataset`, Apache 2.0) | 100 | 400 |
+| Receipt | 300: *SROIE 2019* scanned receipts, ICDAR competition (`ryanznie/sroie-datasetv2-with-labels`, MIT) | 100 | 400 |
+| Resume | 300: *Resume Dataset* from livecareer.com (`snehaanbhawal/resume-dataset`, CC0) | 100 | 400 |
+| Medical Report | 300: *Medical Transcriptions* from mtsamples.com (`tboyle10/medicaltranscriptions`, CC0) | 100 | 400 |
+| Legal Contract | 300: *CUAD v1* commercial contracts, The Atticus Project (`konradb/atticus-open-contract-dataset-aok-beta`, CC BY 4.0) | 100 | 400 |
+| Identity Document | none: no public dataset exists (private data) | 400 | 400 |
+| Bank Statement | none: no public dataset exists (private data) | 400 | 400 |
+| Application Form | none: no public dataset exists (private data) | 400 | 400 |
+| **Total** | **1,500 real** | **1,700** | **3,200** |
+
+**Why not 100% real data?** ID cards, bank statements and filled application forms contain **personal data**; publishing them is neither legal nor ethical, so no public dataset of them exists. The jury instructions explicitly allow *"public datasets, sample images, simulated device data"*, so we use **public datasets where they exist and a realistic generator where they cannot exist**. We also keep 100 synthetic documents in the real categories so the model still knows the Indian-style layouts of our demo documents (GSTIN, Rs., Aadhaar…).
+
+### 6.2 Real documents: `kaggle_dataset.py`
+- Public Kaggle datasets can be downloaded **without an account** from `https://www.kaggle.com/api/v1/datasets/download/<owner>/<dataset>/<file>`. The script downloads only the files it needs (a CSV, a JSON, or the OCR text files of the receipts), about 110 MB in total, and caches them in `data/kaggle_raw/` (not committed to Git).
+- **Receipts (SROIE)** already come with OCR output (one line per detected text box, `x1,y1,…,x4,y4,TEXT`); we keep only the text.
+- **Contracts (CUAD)** are 510 long commercial agreements; **medical transcriptions** are real anonymised reports (operative notes, consultations, discharge summaries); **resumes** are 2,400+ real CVs in 24 job categories.
+- **Cleaning:** collapse whitespace, drop texts shorter than 80 characters, **remove exact duplicates** (mtsamples has some), randomly sample 300 per class (fixed seed 7), and **cut every document to its first 3,000 characters** (about 1–2 pages: what a scanner usually captures and enough to recognise the type; it also stops 50-page contracts from dominating the TF-IDF statistics).
+- Each row gets a `source` column (`kaggle` or `synthetic`) so we can measure accuracy on real and synthetic documents separately (Section 8.4).
+
+### 6.3 Synthetic documents: `generate_dataset.py`
 For each of the 8 categories there is a **template function** (`make_invoice()`, `make_receipt()`, …) that writes a realistic document with randomised:
 - names, companies, stores, banks, hospitals, cities, addresses, phone numbers, e-mails;
 - dates in 5 different formats, amounts in different currencies (Rs., INR, $, ₹, EUR…);
@@ -255,7 +279,7 @@ For each of the 8 categories there is a **template function** (`make_invoice()`,
 | `resume` | CV, résumé with experience/education/skills | HR - Recruitment |
 | `legal_contract` | NDA, rental, employment, service agreement, MoU | Legal & Compliance |
 
-### 6.3 Making it realistic (and hard)
+### 6.4 Making the synthetic data realistic (and hard)
 A first version gave 100% accuracy, which is unrealistic. So we added the kinds of mess real documents have:
 1. **OCR noise**: characters swapped the way OCR confuses them (`o→0`, `l→1`, `rn→m`, `S→5`…) and dropped characters, at 0–12% intensity.
 2. **Partial scans**: 35% of documents are cut off (only 20–70% of lines kept), and random lines are dropped.
@@ -263,22 +287,24 @@ A first version gave 100% accuracy, which is unrealistic. So we added the kinds 
 4. **Cross-category mixing**: 40% of documents have 2–6 lines borrowed from another category (a receipt that says "invoice", a loan form with bank details, a contract mentioning salary).
 5. **Case changes**: some documents are all-UPPER or all-lower case.
 
-### 6.4 Labelling
-Labels are **automatic and exact**: the template that generated a document *is* its label (stored in the `label` column of `documents.csv`). No manual labelling errors.
+### 6.5 Labelling
+- **Real documents:** the label comes from the dataset itself (a receipt dataset contains only receipts, CUAD only contracts, etc.), so no manual labelling is needed.
+- **Synthetic documents:** the template that generated a document *is* its label.
+Both are stored in the `label` column of `documents.csv`.
 
-### 6.5 Preprocessing (`classifier.preprocess`)
+### 6.6 Preprocessing (`classifier.preprocess`)
 The same function is used in training and prediction:
 1. lower-case everything;
 2. replace every digit with `0` (amounts and ID numbers are random; their *shape* matters, not the value);
 3. collapse whitespace.
 
-### 6.6 Train / test split
-- **2,000 documents**, **250 per class** (balanced).
-- **80/20 stratified split** → 1,600 train / 400 test (50 per class), `random_state=7` for reproducibility.
+### 6.7 Train / test split
+- **3,200 documents**, **400 per class** (balanced); 1,500 real + 1,700 synthetic.
+- **80/20 stratified split** → 2,560 train / 640 test (80 per class), `random_state=7` for reproducibility. The test set contains 285 real and 355 synthetic documents.
 - **5-fold stratified cross-validation** on all data as a second, more robust estimate.
 - **Separate held-out image set**: 32 newly generated documents rendered as images (half "scanned" with rotation, noise, blur, yellow paper tint) that the model **never saw**; used to test the *whole* pipeline including OCR.
 
-### 6.7 Demo inputs (`sample_documents/`)
+### 6.8 Demo inputs (`sample_documents/`)
 - `normal/`: for every category a **clean PNG** and a **phone-style scanned JPG**; plus **digital PDFs** (invoice, contract, bank statement) and a **TXT** resume.
 - `abnormal/`: blank page, landscape photo, image with only "Hello", unrelated recipe text, ambiguous invoice/receipt mix, very blurry scan, corrupted file (random bytes with a .png name).
 
@@ -304,10 +330,10 @@ We combine **two TF-IDF vectorizers** (a `FeatureUnion`):
 
 | Vectorizer | What it looks at | Why |
 |---|---|---|
-| **Word TF-IDF** | single words and word pairs (1–2 grams), English stop-words removed, max 20,000 features | Captures meaning: "invoice no", "date of birth", "closing balance", "hereinafter referred" |
+| **Word TF-IDF** | single words and word pairs (1–2 grams), English stop-words removed, max 40,000 features (39,002 used) | Captures meaning: "invoice no", "date of birth", "closing balance", "hereinafter referred" |
 | **Character TF-IDF** | 3–5 character pieces inside words (`char_wb`), max 30,000 features | **Robust to OCR errors**: "inv0ice" still shares "inv", "ice", "voice" with "invoice". Also handles words OCR glued together ("PAYMENTRECEIPT") |
 
-**Total: 42,000 features per document.** Example: the text *"Invoice No: INV-20931"* becomes non-zero values for features like `invoice`, `invoice inv`, ` inv`, `nvoi`, `voice`, `ice `, `no` …
+**Total: 69,002 features per document.** (The word limit was raised from 20,000 to 40,000 when the real Kaggle text was added: its larger vocabulary was pushing common words of our scanned demo documents out of the vocabulary.) Example: the text *"Invoice No: INV-20931"* becomes non-zero values for features like `invoice`, `invoice inv`, ` inv`, `nvoi`, `voice`, `ice `, `no` …
 
 ---
 
@@ -315,7 +341,7 @@ We combine **two TF-IDF vectorizers** (a `FeatureUnion`):
 
 ### 8.1 Problem type
 **Supervised multi-class text classification.**
-- **Input:** TF-IDF vector (42,000 numbers) of the document text.
+- **Input:** TF-IDF vector (69,002 numbers) of the document text.
 - **Output classes (8):** invoice, receipt, identity_document, application_form, bank_statement, medical_report, resume, legal_contract.
 - Plus a 9th *decision* outcome, **"unknown / Manual Review"**, produced by rules (Section 9), not by the model.
 
@@ -323,9 +349,9 @@ We combine **two TF-IDF vectorizers** (a `FeatureUnion`):
 
 | Model | Test accuracy | Macro F1 | Train time | Predict / doc |
 |---|---|---|---|---|
-| Logistic Regression (C=10) | 97.75% | 97.75% | 3.5 s | 0.56 ms |
-| **Linear SVM, calibrated (C=0.5)** ✅ | **98.00%** | **97.99%** | 1.7 s | 0.58 ms |
-| Multinomial Naive Bayes (α=0.05) | 96.50% | 96.50% | 1.1 s | 0.57 ms |
+| Logistic Regression (C=10) | 99.22% | 99.22% | 7.5 s | 1.2 ms |
+| **Linear SVM, calibrated (C=0.5)** ✅ | **99.38%** | **99.37%** | 5.1 s | 1.0 ms |
+| Multinomial Naive Bayes (α=0.05) | 97.19% | 97.18% | 3.6 s | 1.1 ms |
 
 The script automatically **selects the best macro-F1** model, re-trains it on **100% of the data**, and saves it.
 
@@ -336,34 +362,45 @@ The script automatically **selects the best macro-F1** model, re-trains it on **
 
 ### 8.3 Evaluation of the selected model (Linear SVM, calibrated)
 
-- **Test accuracy: 98.00%** (392 / 400 correct)
-- **Macro F1: 97.99%**
-- **5-fold cross-validation accuracy: 98.35% ± 0.54%** (stable, not a lucky split)
+- **Test accuracy: 99.38%** (636 / 640 correct)
+- **Macro F1: 99.37%**
+- **5-fold cross-validation accuracy: 99.44% ± 0.25%** (stable, not a lucky split)
+- **Accuracy on the 285 unseen real Kaggle documents: 100%**; on the 355 unseen synthetic documents: 98.9%
 - **End-to-end on 32 held-out scanned images (OCR + model): 32/32 = 100%**
 
 | Class | Precision | Recall | F1 |
 |---|---|---|---|
-| Application Form | 96.1% | 98.0% | 97.0% |
-| Bank Statement | 100% | 94.0% | 96.9% |
-| Identity Document | 98.0% | 96.0% | 97.0% |
+| Application Form | 100% | 100% | 100% |
+| Bank Statement | 97.6% | 100% | 98.8% |
+| Identity Document | 100% | 97.5% | 98.7% |
 | Invoice | 100% | 100% | 100% |
-| Legal Contract | 96.2% | 100% | 98.0% |
-| Medical Report | 98.0% | 96.0% | 97.0% |
-| Receipt | 100% | 100% | 100% |
-| Resume / CV | 96.2% | 100% | 98.0% |
+| Legal Contract | 98.8% | 100% | 99.4% |
+| Medical Report | 100% | 100% | 100% |
+| Receipt | 100% | 97.5% | 98.7% |
+| Resume / CV | 98.8% | 100% | 99.4% |
 
 **Confusion matrix** (rows = true, columns = predicted; order: Application, Bank, ID, Invoice, Contract, Medical, Receipt, Resume):
 ```
-Application  49  0  0  0  1  0  0  0
-Bank          1 47  0  0  1  1  0  0
-Identity      1  0 48  0  0  0  0  1
-Invoice       0  0  0 50  0  0  0  0
-Contract      0  0  0  0 50  0  0  0
-Medical       0  0  1  0  0 48  0  1
-Receipt       0  0  0  0  0  0 50  0
-Resume        0  0  0  0  0  0  0 50
+Application  80  0  0  0  0  0  0  0
+Bank          0 80  0  0  0  0  0  0
+Identity      0  1 78  0  1  0  0  0
+Invoice       0  0  0 80  0  0  0  0
+Contract      0  0  0  0 80  0  0  0
+Medical       0  0  0  0  0 80  0  0
+Receipt       0  1  0  0  0  0 78  1
+Resume        0  0  0  0  0  0  0 80
 ```
-The 8 mistakes are almost all heavily truncated, noisy documents that had lines borrowed from another category. They are listed on the Model page as *"Examples the model got wrong"*.
+All 4 mistakes are **synthetic** documents that were heavily truncated and noisy and had lines borrowed from another category (e.g. a café receipt containing bank IFSC lines). They are listed on the Model page as *"Examples the model got wrong"*, with their source.
+
+### 8.4 Real-world validation (why the Kaggle data matters)
+Two checks are computed automatically by `train_model.py` and shown on the Model page (*Real-world validation* card):
+
+| Check | Result | Meaning |
+|---|---|---|
+| Final model on **unseen real** test documents | **100%** (285/285) | the model works on real receipts, invoices, resumes, medical reports and contracts, not only on our templates |
+| Model trained **only on synthetic** documents, tested on **all 1,500 real** ones | **93.7%** | our generator alone already produced a model that mostly generalises to real documents it never saw; adding real data closes the remaining gap |
+
+**Honest caveat:** each real category comes from *one* dataset with its own style (SROIE receipts are Malaysian, with "RM" for ringgit; Kaggle resumes contain the placeholder "Company Name City, State"). The model partly learns these source-specific words (see 8.5), so 100% on the real test split is optimistic: real test documents come from the same datasets as the real training documents. Documents from a completely new source (e.g. your own office's receipts) would score lower. The Review Queue + Retrain loop exists exactly for that.
 
 **Metric definitions** (for the viva):
 - *Precision* = of the documents predicted as X, how many really were X.
@@ -371,25 +408,25 @@ The 8 mistakes are almost all heavily truncated, noisy documents that had lines 
 - *F1* = harmonic mean of precision and recall.
 - *Macro F1* = average F1 over classes (treats every class equally).
 
-### 8.4 What the model learned (strongest words per class)
+### 8.5 What the model learned (strongest words per class)
 | Class | Top words |
 |---|---|
-| Application Form | app, form, applicant, male, section |
-| Bank Statement | account, main, bank, branch, chq |
-| Identity Document | birth, india, sex, namc (OCR-misspelt "name"), birth sex |
-| Invoice | invoice, po, inv, gstin |
-| Legal Contract | second, party, … |
-| Medical Report | patient, age, dr, report |
-| Receipt | receipt, time, tel, gst, tax |
-| Resume | com, phone, email, github, skills |
+| Application Form | form, app, personal, gender, applicant, guardian |
+| Bank Statement | main, account, branch, bank, micr, holder |
+| Identity Document | birth, india, sex, card, date birth, indian |
+| Invoice | gstin, invoice, po, inv, order, product |
+| Legal Contract | agreement, exhibit, term, agree, parties, shall |
+| Medical Report | patient, age, dr, age sex, left, normal |
+| Receipt | gst, receipt, total, rm, cash, tax |
+| Resume | city state, state, experience, company city, skills, city |
 
-Notice the model even learned OCR-misspelt variants (e.g. "namc" for "name", "thc" for "the"), which shows why noisy training data helps.
+Most words are exactly what a human would use. Two are **dataset artefacts** worth mentioning in the viva: `rm` (Malaysian ringgit, from the SROIE receipts) and `city state` / `company city` (anonymisation placeholders in the Kaggle resumes). This is a real-world lesson: a model learns *whatever* separates the classes, including quirks of where the data came from.
 
-### 8.5 Explainability for every prediction
+### 8.6 Explainability for every prediction
 `classifier.predict()` multiplies each word's TF-IDF value by the predicted class's weight. The highest positive contributions are shown in the UI under **"Why this prediction?"**, e.g. a receipt shows `cash +0.07, counter +0.05, paid +0.04…`.
 
-### 8.6 Model file
-`models/document_classifier.joblib` (~11 MB, mostly the TF-IDF vocabularies) contains the full scikit-learn **Pipeline** (both vectorizers + classifier), so prediction is one call. `models/metrics.json` stores all evaluation numbers.
+### 8.7 Model file
+`models/document_classifier.joblib` (~21 MB, mostly the TF-IDF vocabularies) contains the full scikit-learn **Pipeline** (both vectorizers + classifier), so prediction is one call. `models/metrics.json` stores all evaluation numbers.
 
 ---
 
@@ -572,7 +609,7 @@ Deep link: `http://localhost:5000/#history/12` opens document #12 directly.
 1. Uncertain documents go to the **Review Queue** instead of the wrong department.
 2. A staff member picks the right category → the file is **moved** to that department, status becomes `reviewed` or `corrected`.
 3. These human-verified documents are **new labelled training data**.
-4. *Model & Analytics → Retrain model now* calls `POST /api/model/retrain`: the original 2,000 docs + all verified docs are used to retrain all 3 algorithms, the best is saved as **version N+1** and **hot-swapped** into the running service (no restart; ~20 s on a laptop).
+4. *Model & Analytics → Retrain model now* calls `POST /api/model/retrain`: the original 3,200 docs + all verified docs are used to retrain all 3 algorithms, the best is saved as **version N+1** and **hot-swapped** into the running service (no restart; ~1 minute on a laptop).
 5. The dashboard's **"Live accuracy"** KPI shows how often the model's suggestion matched the human decision.
 
 This is called **active learning / continuous learning**, and it is how the system adapts to a real organisation's own documents over time.
@@ -581,19 +618,20 @@ This is called **active learning / continuous learning**, and it is how the syst
 
 ## 17. Testing (Normal & Abnormal Cases)
 
-Run: `cd backend && python test_system.py` (uses a temporary data folder; your real history is untouched). Latest result: **42/42 passed**, full table in `reports/test_report.md`.
+Run: `cd backend && python test_system.py` (uses a temporary data folder; your real history is untouched). Latest result: **43/43 passed**, full table in `reports/test_report.md`.
 
 ### Normal cases (21 tests)
-All 8 categories as clean PNG, phone-style scanned JPG, digital PDF (3), plain TXT and pasted text → **every one classified correctly and auto-routed** with 95.6–99.7% confidence, and the routed file verified on disk.
+All 8 categories as clean PNG, phone-style scanned JPG, digital PDF (3), plain TXT and pasted text → **every one classified correctly and auto-routed** with 86–99.9% confidence, and the routed file verified on disk.
 
-### Abnormal / varied cases (12 tests)
+### Abnormal / varied cases (13 tests)
 | Input | Expected | Result |
 |---|---|---|
 | `blank_page.png` | Manual Review (no text) | ✅ unknown, needs_review |
 | `landscape_photo.jpg` | Manual Review (not a document) | ✅ |
 | `very_little_text.png` ("Hello") | Manual Review | ✅ |
-| `unrelated_recipe.txt` | Manual Review (out-of-domain, 9% familiar words) | ✅ |
-| `ambiguous_invoice_receipt.png` | review or finance category | ✅ 64.9% → Manual Review |
+| `unrelated_recipe.txt` | Manual Review (out-of-domain) | ✅ best guess only 62% → Manual Review |
+| `ambiguous_invoice_receipt.png` | review or finance category | ✅ 66.9% → Manual Review |
+| 5-line snippet "INVOICE / Subtotal / GST / Total" | review or invoice, never a wrong department | ✅ 54% → Manual Review (real SROIE receipts are also titled "TAX INVOICE" and list GST, so this is genuinely ambiguous) |
 | `very_blurry_scan.jpg` | medical report or review | ✅ medical_report 98.9% |
 | `corrupted_file.png` | HTTP 422 | ✅ |
 | `virus.exe` | HTTP 415 | ✅ |
@@ -606,7 +644,7 @@ All 8 categories as clean PNG, phone-style scanned JPG, digital PDF (3), plain T
 Human correction moves the file (`Manual_Review/… → Applications_Desk/…`), invalid category rejected, and all GET endpoints return 200.
 
 ### End-to-end accuracy on scanned images
-32 held-out rendered documents (16 clean, 16 noisy/rotated/blurred) → OCR → model: **32/32 correct (100%)**, average OCR ≈ 3.1 s, average ML ≈ 8 ms.
+32 held-out rendered documents (16 clean, 16 noisy/rotated/blurred) → OCR → model: **32/32 correct (100%)**, average OCR ≈ 3.0 s, average ML ≈ 9 ms.
 
 ---
 
@@ -620,8 +658,8 @@ Measured on the development laptop (Windows 11, Python 3.12, CPU only, no GPU):
 | PDF / TXT / DOCX text extraction | **~10–30 ms** |
 | OCR, receipt / ID card image | ~0.8–2 s |
 | OCR, full A4 page image | ~2–5 s (more text lines = longer) |
-| Training 3 models + 5-fold CV | ~20 s |
-| Model size on disk | ~11 MB |
+| Training 3 models + 5-fold CV + real-data check | ~60 s |
+| Model size on disk | ~21 MB |
 | First OCR call after start-up | +1 s (model loading; we warm it up in the background) |
 
 OCR dominates the time; the ML part is effectively instant. On a Raspberry Pi-class device OCR would take longer (≈5–15 s per page), still acceptable for a mail-room workflow.
@@ -632,7 +670,7 @@ OCR dominates the time; the ML part is effectively instant. On a Raspberry Pi-cl
 
 - **Where the computation happens:** OCR, feature extraction, classification, decision rules, routing and storage all run **on the local device** (laptop, office PC, mini-PC or edge gateway). Proven by unplugging the internet: everything except the optional AI button continues to work.
 - **Edge vs cloud trade-off:** cloud OCR/AI services are more accurate on very messy documents but cost money per page, need connectivity, add latency and send sensitive documents off-site. Our design keeps the **critical path at the edge** and uses the cloud only as an **opt-in assistant**, with masking.
-- **Edge-friendly choices:** ONNX Runtime (optimised CPU inference), an ~11 MB linear model, SQLite (no database server), no frontend build step, Chart.js bundled locally, Docker image for deployment to edge runtimes (e.g. Azure IoT Edge).
+- **Edge-friendly choices:** ONNX Runtime (optimised CPU inference), an ~21 MB linear model, SQLite (no database server), no frontend build step, Chart.js bundled locally, Docker image for deployment to edge runtimes (e.g. Azure IoT Edge).
 - **Upstream summarisation:** the `/api/stats` endpoint shows how an edge node could send only *aggregated* metadata (counts, confidence, alerts) to a central office instead of raw documents.
 
 ---
@@ -640,7 +678,7 @@ OCR dominates the time; the ML part is effectively instant. On a Raspberry Pi-cl
 ## 20. Limitations & Future Scope
 
 ### Limitations (be honest with the jury)
-1. **Synthetic training data.** Templates cannot capture every real-world layout; accuracy on real documents would likely be lower until the model is retrained with real (human-verified) examples, which the Review Queue + Retrain feature is designed for.
+1. **Partly synthetic, single-source data.** 1,500 of the 3,200 training documents are real (Kaggle), but ID documents, bank statements and application forms are synthetic because no public dataset of them can exist. Each real category also comes from only one dataset, so the model partly learns source quirks (e.g. "RM" in Malaysian receipts). Accuracy on documents from a brand-new source would be lower than the reported 99%; the Review Queue + Retrain loop is designed to add those organisation-specific examples.
 2. **Text only.** The model uses text, not visual layout (logos, tables, photos). Documents with almost no text (e.g. a photo-only ID back side) go to Manual Review.
 3. **OCR quality.** Very blurry, handwritten, or rotated-90° images reduce OCR quality. The bundled OCR model sometimes merges words ("PAYMENTRECEIPT"); character n-grams make the classifier tolerant of this.
 4. **Languages.** Trained on English documents only; Hindi/regional text is not classified reliably.
@@ -649,7 +687,7 @@ OCR dominates the time; the ML part is effectively instant. On a Raspberry Pi-cl
 7. **No user authentication**: fine for a prototype on a trusted LAN, not for production.
 
 ### Future scope
-- Fine-tune with real anonymised documents; add layout-aware models (e.g. LayoutLM) or a lightweight image CNN as a second opinion.
+- Add real anonymised ID cards, bank statements and forms from a partner organisation, and more than one source per category; add layout-aware models (e.g. LayoutLM) or a lightweight image CNN as a second opinion.
 - Page splitting for multi-document PDFs.
 - Multilingual OCR + training data (Hindi, Marathi…).
 - MQTT publishing of routing events (`docs/routed/<department>`) for other systems.
@@ -673,7 +711,8 @@ OCR dominates the time; the ML part is effectively instant. On a Raspberry Pi-cl
 ```bash
 pip install -r requirements.txt
 cd backend
-python generate_dataset.py     # (already done) creates dataset + samples
+python generate_dataset.py     # (already done) synthetic documents + demo samples + test images
+python kaggle_dataset.py       # (already done) downloads real Kaggle documents (no account needed), builds documents.csv
 python train_model.py          # (already done) trains & saves the model, prints metrics
 python app.py                  # starts the edge service → open http://localhost:5000
 ```
@@ -703,7 +742,8 @@ Stop the service and delete `data/history.db`, `data/uploads/` and `data/routed/
 | Problem | Fix |
 |---|---|
 | Python crashes on start (Windows) when importing OCR | Make sure `onnxruntime==1.20.1` is installed (newer versions conflict with scikit-learn's DLLs on some Windows machines) |
-| `Model not found` | run `python generate_dataset.py` then `python train_model.py` |
+| `Model not found` | run `python generate_dataset.py`, `python kaggle_dataset.py`, then `python train_model.py` |
+| `kaggle_dataset.py` cannot download | needs internet once; files are then cached in `data/kaggle_raw/`. The committed `documents.csv` and model already contain the result, so this is only needed to rebuild |
 | Port 5000 busy | set `EDGE_PORT=5050` before `python app.py` |
 | Simulator is slow to connect | use `--url http://127.0.0.1:5000` (Windows resolves `localhost` to IPv6 first) |
 | AI button disabled | add `OPENAI_API_KEY` to `backend/.env` and restart |
@@ -720,10 +760,10 @@ A suggested 8–10 minute flow (each step uses **live** predictions):
 4. **Abnormal inputs (1.5 min)**: *Sample gallery → Abnormal*: blank page, landscape photo, recipe text, corrupted file. Show how each is handled (Manual Review / clear rejection) and that the service keeps running. Paste "Example: random text".
 5. **Device communication (1.5 min)**: second terminal: `python scanner_simulator.py`. Switch to the Dashboard and watch documents appear **live** (LIVE badge, charts update). Show the *Edge System → Live API console* and the traffic-by-source table.
 6. **Human-in-the-loop (1 min)**: *Review Queue* → assign a document → it moves folder; *Model → Retrain model now* → version increases.
-7. **Model explanation (1.5 min)**: *Model & Analytics*: algorithm comparison, confusion matrix, cross-validation, end-to-end OCR test, keywords.
+7. **Model explanation (1.5 min)**: *Model & Analytics*: the **Real-world validation** card (1,500 real Kaggle documents, 100% on unseen real docs, 93.7% for the synthetic-only model), the dataset chart (real vs synthetic per category), algorithm comparison, confusion matrix, cross-validation, end-to-end OCR test, keywords (point out the `rm` artefact as an honest limitation).
 8. **Optional AI (30 s)**: open an invoice → *Generate AI summary*; mention masking and that it's optional.
 9. **Edge argument (30 s)**: turn Wi-Fi off and upload again: still works.
-10. **Testing**: show `reports/test_report.md` (42/42 + 32/32).
+10. **Testing**: show `reports/test_report.md` (43/43 + 32/32).
 
 ---
 
@@ -739,7 +779,7 @@ What happens when you drop `invoice.jpg` on the dashboard:
    2. `ocr.extract_text(path)` → `ocr_image()` runs RapidOCR, rebuilds lines, returns text + OCR confidence + time.
    3. If text ≥ 25 chars: `classifier.predict(text)`:
       - `preprocess()` (lower-case, digits → 0),
-      - pipeline `features.transform()` → 42,000-dim TF-IDF vector,
+      - pipeline `features.transform()` → 69,002-dim TF-IDF vector,
       - `clf.predict_proba()` → 8 probabilities,
       - explanation: TF-IDF × class weights → top words,
       - `known_word_ratio()` → out-of-domain score.
@@ -751,17 +791,17 @@ What happens when you drop `invoice.jpg` on the dashboard:
 5. **`app.py`** returns it as JSON (HTTP 200).
 6. **Browser**: `ui.js → docDetailHtml(doc)` renders the result; `refreshBadges()` updates the review count; the dashboard picks it up on its next 5-second refresh.
 
-**Training flow:** `generate_dataset.py` → `data/dataset/documents.csv` → `train_model.py: load_dataset() → train_test_split → build_pipeline() for 3 models → evaluate → cross_val_score → refit best on all data → joblib.dump + metrics.json` → `classifier.py` loads it.
+**Training flow:** `generate_dataset.py` → `synthetic_documents.csv` → `kaggle_dataset.py` (+ real Kaggle documents) → `data/dataset/documents.csv` → `train_model.py: load_dataset() → train_test_split → build_pipeline() for 3 models → evaluate → cross_val_score → refit best on all data → joblib.dump + metrics.json` → `classifier.py` loads it.
 
 ---
 
 ## 24. Likely Jury Questions & Answers
 
 **Q: Why TF-IDF and not deep learning?**
-A: It's the suggested approach, it's very accurate for text-heavy documents (98%), trains in seconds, predicts in ~8 ms on a CPU, the model is only ~11 MB, and it's explainable (we can show which words drove the decision). Deep models need GPUs, much more data and are harder to explain: a poor fit for an edge device.
+A: It's the suggested approach, it's very accurate for text-heavy documents (99.4%), trains in about a minute, predicts in ~9 ms on a CPU, the model is only ~21 MB, and it's explainable (we can show which words drove the decision). Deep models need GPUs, much more data and are harder to explain: a poor fit for an edge device.
 
 **Q: Why did you choose SVM over Logistic Regression?**
-A: We trained both (plus Naive Bayes) on the same split and selected automatically by macro F1. SVM scored 98.0% vs 97.75%. The difference is small; both are linear models over the same features. We calibrate the SVM so it still gives probabilities.
+A: We trained both (plus Naive Bayes) on the same split and selected automatically by macro F1. SVM scored 99.38% vs 99.22%. The difference is small (1 document out of 640); both are linear models over the same features. We calibrate the SVM so it still gives probabilities.
 
 **Q: What is calibration?**
 A: An SVM outputs distances from its decision boundary, not probabilities. `CalibratedClassifierCV` learns (with internal 3-fold CV) a mapping from those scores to probabilities, so "90% confidence" really means right about 90% of the time. We need that for the 70% threshold.
@@ -769,8 +809,14 @@ A: An SVM outputs distances from its decision boundary, not probabilities. `Cali
 **Q: Why character n-grams?**
 A: OCR makes spelling mistakes ("inv0ice") and merges words. Character pieces like "nvoi", "voice" still match, so the model is robust to OCR noise.
 
-**Q: Your data is synthetic, so isn't the accuracy inflated?**
-A: Partly, yes, and we say so. We deliberately made it harder (OCR noise, truncation, missing titles, borrowed lines from other classes), which brought accuracy from 100% to a realistic 98%. We also test on rendered scanned images through the real OCR, and on abnormal inputs. In deployment, the Review Queue + Retrain loop adds real labelled documents.
+**Q: Which dataset did you use?**
+A: A mix. 1,500 real documents from five public Kaggle datasets (SROIE receipts, a company invoice dataset, a resume dataset, mtsamples medical transcriptions, CUAD legal contracts) plus 1,700 synthetic documents. ID cards, bank statements and application forms are synthetic because they are private and no public dataset of them can legally exist. Every row has a `source` column, and we report accuracy on real and synthetic documents separately.
+
+**Q: Isn't 99% accuracy too good to be true?**
+A: Partly, and we say so. On *unseen real* documents the model scores 100%, but those come from the same five datasets as the training documents, and each dataset has its own style (e.g. Malaysian "RM" receipts), which the model partly learns. A model trained *only* on our synthetic data scored 93.7% on all 1,500 real documents, which is a fairer estimate of performance on documents from a brand-new source. On the synthetic part we deliberately added OCR noise, truncation, missing titles and borrowed lines; that is where the remaining 4 errors are. In deployment, the Review Queue + Retrain loop adds the organisation's own labelled documents.
+
+**Q: Did adding real data make the model better?**
+A: It made it more *trustworthy*. Before, we could only claim accuracy on our own templates. Now we can show it on real receipts, contracts, resumes, medical reports and invoices. It also exposed a real-world ambiguity the synthetic data hid: real receipts are often titled "TAX INVOICE", so a tiny invoice snippet now (correctly) goes to Manual Review instead of being auto-routed.
 
 **Q: What happens with a document type the model has never seen?**
 A: Three safety nets: (1) if fewer than 35% of its words are known to the model, it's flagged out-of-domain; (2) if confidence < 70%, it goes to Manual Review; (3) a human can assign it and retrain.

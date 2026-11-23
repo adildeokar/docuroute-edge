@@ -32,21 +32,24 @@ from classifier import DocumentClassifier, preprocess
 
 
 def load_dataset(extra_rows=None):
-    """Read the labelled corpus. extra_rows = [(label, text), ...] from human corrections."""
-    texts, labels = [], []
+    """Read the labelled corpus. extra_rows = [(label, text), ...] from human corrections.
+    sources tells where each document came from: kaggle (real), synthetic or feedback."""
+    texts, labels, sources = [], [], []
     with open(config.DATASET_CSV, encoding="utf-8") as f:
         for row in csv.DictReader(f):
             texts.append(row["text"])
             labels.append(row["label"])
+            sources.append(row.get("source") or "synthetic")
     for label, text in extra_rows or []:
         texts.append(text)
         labels.append(label)
-    return [preprocess(t) for t in texts], np.array(labels)
+        sources.append("feedback")
+    return [preprocess(t) for t in texts], np.array(labels), np.array(sources)
 
 
 def build_pipeline(classifier):
     features = FeatureUnion([
-        ("word", TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_features=20000, sublinear_tf=True,
+        ("word", TfidfVectorizer(ngram_range=(1, 2), min_df=2, max_features=40000, sublinear_tf=True,
                                  stop_words="english", token_pattern=r"(?u)\b[a-z][a-z]+\b")),
         ("char", TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=2, max_features=30000,
                                  sublinear_tf=True)),
@@ -81,11 +84,12 @@ def top_keywords(pipeline, labels, n=10):
 def train(extra_rows=None, verbose=True):
     log = print if verbose else (lambda *a, **k: None)
     start = time.time()
-    texts, labels = load_dataset(extra_rows)
+    texts, labels, sources = load_dataset(extra_rows)
     classes = sorted(set(labels))
-    log(f"Loaded {len(texts)} documents, {len(classes)} classes")
+    log(f"Loaded {len(texts)} documents, {len(classes)} classes, {int((sources == 'kaggle').sum())} real (Kaggle)")
 
-    X_train, X_test, y_train, y_test = train_test_split(texts, labels, test_size=0.2, stratify=labels, random_state=7)
+    X_train, X_test, y_train, y_test, s_train, s_test = train_test_split(
+        texts, labels, sources, test_size=0.2, stratify=labels, random_state=7)
 
     # ---- compare candidate models on the held-out test set ----
     comparison, best_name, best_f1, best_pred = [], None, -1, None
@@ -108,13 +112,31 @@ def train(extra_rows=None, verbose=True):
     report = classification_report(y_test, best_pred, labels=classes, output_dict=True, zero_division=0)
     cm = confusion_matrix(y_test, best_pred, labels=classes)
 
-    mistakes = [{"true": t, "predicted": p, "snippet": x[:160]}
-                for x, t, p in zip(X_test, y_test, best_pred) if t != p][:10]
+    mistakes = [{"true": t, "predicted": p, "source": src, "snippet": x[:160]}
+                for x, t, p, src in zip(X_test, y_test, best_pred, s_test) if t != p][:10]
+
+    # ---- accuracy separately on real (Kaggle) and synthetic test documents ----
+    by_source = {}
+    for src in sorted(set(s_test)):
+        m = s_test == src
+        by_source[src] = {"documents": int(m.sum()), "accuracy": round(accuracy_score(y_test[m], best_pred[m]), 4)}
+        log(f"  test accuracy on {src:9s} documents: {by_source[src]['accuracy']:.4f}  (n={int(m.sum())})")
 
     # ---- 5-fold cross validation of the chosen model on all data ----
     cv = cross_val_score(build_pipeline(candidate_models()[best_name]), texts, labels,
                          cv=StratifiedKFold(5, shuffle=True, random_state=7), scoring="accuracy", n_jobs=1)
     log(f"5-fold CV accuracy: {cv.mean():.4f} +/- {cv.std():.4f}")
+
+    # ---- generalisation check: train ONLY on synthetic documents, test on ALL real Kaggle documents ----
+    real, synthetic = sources == "kaggle", sources == "synthetic"
+    generalisation = None
+    if real.any() and synthetic.any():
+        probe = build_pipeline(candidate_models()[best_name])
+        probe.fit([t for t, k in zip(texts, synthetic) if k], labels[synthetic])
+        probe_pred = probe.predict([t for t, k in zip(texts, real) if k])
+        generalisation = {"trained_on": int(synthetic.sum()), "documents": int(real.sum()),
+                          "accuracy": round(accuracy_score(labels[real], probe_pred), 4)}
+        log(f"Synthetic-only model on {int(real.sum())} real documents: {generalisation['accuracy']:.4f}")
 
     # ---- final model: re-train on 100% of the data and save ----
     final = build_pipeline(candidate_models()[best_name])
@@ -139,7 +161,11 @@ def train(extra_rows=None, verbose=True):
             "test_size": len(X_test),
             "feedback_samples": len(extra_rows or []),
             "per_class": {c: int((labels == c).sum()) for c in classes},
+            "per_source": {src: int((sources == src).sum()) for src in sorted(set(sources))},
+            "real_per_class": {c: int(((labels == c) & (sources == "kaggle")).sum()) for c in classes},
         },
+        "test_accuracy_by_source": by_source,
+        "synthetic_only_on_real": generalisation,
         "test_accuracy": round(accuracy_score(y_test, best_pred), 4),
         "test_macro_f1": round(best_f1, 4),
         "cv_accuracy_mean": round(float(cv.mean()), 4),

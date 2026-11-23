@@ -8,6 +8,8 @@ Pages.model = {
     const labels = m.classes.map((c) => catInfo(c).label);
     const kpi = (label, value, sub) => `<div class="card kpi"><div class="kpi-label">${label}</div><div class="kpi-value" style="font-size:24px">${value}</div><div class="kpi-sub">${sub}</div></div>`;
     const e2e = m.end_to_end;
+    const bySrc = m.test_accuracy_by_source || {}, gen = m.synthetic_only_on_real;
+    const realTotal = (m.dataset.per_source || {}).kaggle || 0;
 
     // confusion matrix as a heat-map table (sequential blue)
     const maxCell = Math.max(...m.confusion_matrix.flat());
@@ -34,6 +36,15 @@ Pages.model = {
           <div><div class="muted small">Avg OCR time / image</div><div class="kpi-value" style="margin-top:2px">${fmtMs(e2e.avg_ocr_ms)}</div></div>
           <div><div class="muted small">Avg ML time / doc</div><div class="kpi-value" style="margin-top:2px">${fmtMs(e2e.avg_classify_ms)}</div></div>
         </div></div>` : ""}
+
+      ${realTotal ? `<div class="card mt"><div class="card-head"><h3>Real-world validation (public Kaggle datasets)</h3><span class="muted">backend/kaggle_dataset.py</span></div>
+        <div class="grid g-4">
+          <div><div class="muted small">Real documents in training data</div><div class="kpi-value" style="margin-top:2px">${realTotal.toLocaleString()}</div><div class="kpi-sub">of ${m.dataset.total.toLocaleString()} · 5 categories</div></div>
+          <div><div class="muted small">Test accuracy: real documents</div><div class="kpi-value" style="margin-top:2px">${bySrc.kaggle ? pct(bySrc.kaggle.accuracy, 1) : "-"}</div><div class="kpi-sub">${bySrc.kaggle ? bySrc.kaggle.documents + " unseen real docs" : ""}</div></div>
+          <div><div class="muted small">Test accuracy: synthetic documents</div><div class="kpi-value" style="margin-top:2px">${bySrc.synthetic ? pct(bySrc.synthetic.accuracy, 1) : "-"}</div><div class="kpi-sub">${bySrc.synthetic ? bySrc.synthetic.documents + " unseen synthetic docs" : ""}</div></div>
+          <div><div class="muted small">Synthetic-only model on real docs</div><div class="kpi-value" style="margin-top:2px">${gen ? pct(gen.accuracy, 1) : "-"}</div><div class="kpi-sub">${gen ? `trained without any real data, tested on ${gen.documents.toLocaleString()}` : ""}</div></div>
+        </div>
+        <div class="muted small mt">Receipts (SROIE), invoices, resumes, medical reports (mtsamples) and contracts (CUAD) include real documents. ID documents, bank statements and application forms are private, so no public dataset exists and they remain synthetic.</div></div>` : ""}
 
       <div class="grid g-2 mt">
         <div class="card"><div class="card-head"><h3>Algorithm comparison</h3><span class="muted">test error rate · lower is better</span></div>
@@ -71,8 +82,8 @@ Pages.model = {
       </div>
 
       ${(m.misclassified_examples || []).length ? `<div class="card mt"><div class="card-head"><h3>Examples the model got wrong (test set)</h3><span class="muted">used to discuss limitations</span></div>
-        <div class="table-wrap"><table><thead><tr><th>True</th><th>Predicted</th><th>Text snippet (pre-processed)</th></tr></thead><tbody>
-        ${m.misclassified_examples.map((x) => `<tr><td>${catBadge(x.true)}</td><td>${catBadge(x.predicted)}</td><td class="mono small muted">${esc(x.snippet)}…</td></tr>`).join("")}
+        <div class="table-wrap"><table><thead><tr><th>True</th><th>Predicted</th><th>Source</th><th>Text snippet (pre-processed)</th></tr></thead><tbody>
+        ${m.misclassified_examples.map((x) => `<tr><td>${catBadge(x.true)}</td><td>${catBadge(x.predicted)}</td><td class="small">${x.source === "kaggle" ? "real (Kaggle)" : esc(x.source || "synthetic")}</td><td class="mono small muted">${esc(x.snippet)}…</td></tr>`).join("")}
         </tbody></table></div></div>` : ""}`;
 
     makeChart("chModels", {
@@ -83,10 +94,17 @@ Pages.model = {
       options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `Error rate: ${c.parsed.y}%` } } },
         scales: { y: { beginAtZero: true, ticks: { callback: (v) => v + "%" } }, x: { grid: { display: false } } } },
     });
+    // stacked bar: real (Kaggle) vs synthetic documents per category
+    const realPer = m.dataset.real_per_class || {};
+    const gap = getComputedStyle(document.body).getPropertyValue("--surface").trim() || "#fff";
     makeChart("chDataset", {
       type: "bar",
-      data: { labels, datasets: [{ data: m.classes.map((c) => m.dataset.per_class[c]), backgroundColor: m.classes.map(catColor), borderRadius: 4, barThickness: 14 }] },
-      options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true }, y: { grid: { display: false } } } },
+      data: { labels, datasets: [
+        { label: "Real (Kaggle)", data: m.classes.map((c) => realPer[c] || 0), backgroundColor: "#2a78d6", borderColor: gap, borderWidth: { right: 2 }, barThickness: 14 },
+        { label: "Synthetic / feedback", data: m.classes.map((c) => m.dataset.per_class[c] - (realPer[c] || 0)), backgroundColor: "#eb6834", borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: false, barThickness: 14 },
+      ] },
+      options: { indexAxis: "y", plugins: { legend: { display: true, position: "bottom" } },
+        scales: { x: { stacked: true, beginAtZero: true }, y: { stacked: true, grid: { display: false } } } },
     });
 
     el.querySelector("#retrainBtn").onclick = async (e) => {
