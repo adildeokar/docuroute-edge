@@ -36,7 +36,7 @@ class DocumentClassifier:
     # ------------------------------------------------------------------
     def load(self):
         if not os.path.exists(self.model_path):
-            raise FileNotFoundError("Model not found. Run: python generate_dataset.py && python train_model.py")
+            raise FileNotFoundError("Model not found. Run: python generate_dataset.py && python kaggle_dataset.py && python train_model.py")
         bundle = joblib.load(self.model_path)
         with self.lock:
             self.pipeline = bundle["pipeline"]

@@ -3,6 +3,7 @@
 Edge-based application that reads uploaded images, scans, PDFs or text **locally** (offline OCR), classifies them into 8 document categories with **TF-IDF + Linear SVM / Logistic Regression**, and **routes** each file to the right department folder, with full history, confidence, alerts and a live dashboard.
 
 > 📘 **Full documentation (problem statement, design, ML, testing, demo script, viva Q&A): [EVERYTHING.md](EVERYTHING.md)**
+> 🛠️ **Technical reference (all models, datasets, training procedure, hyperparameters, results): [Tech.md](Tech.md)**
 
 ## Quick start (Windows)
 1. `setup.bat`: install Python libraries (once)

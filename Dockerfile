@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 WORKDIR /app/backend
 # Build the dataset + model only if they were not copied in
-RUN test -f ../models/document_classifier.joblib || (python generate_dataset.py && python train_model.py)
+RUN test -f ../models/document_classifier.joblib || (python generate_dataset.py && python kaggle_dataset.py && python train_model.py)
 
 EXPOSE 5000
 CMD ["python", "app.py"]
